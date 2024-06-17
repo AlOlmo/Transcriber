@@ -2,15 +2,12 @@ import speech_recognition as sr
 from pydub import AudioSegment
 import os
 import shutil
-#from punctuation import PunctuationModel
-from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
-
-
+#from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
+from deepmultilingualpunctuation import PunctuationModel
 
 def check_ffmpeg():
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
         raise EnvironmentError("ffmpeg and/or ffprobe are not installed. Please install them to proceed.")
-
 
 def split_audio(audio_path, segment_length_ms=60000):
     audio = AudioSegment.from_mp3(audio_path)
@@ -23,15 +20,10 @@ def split_audio(audio_path, segment_length_ms=60000):
         segments.append(segment_path)
     return segments
 
-
 def add_punctuation(text):
-    model_name = "ckiplab/bert-base-chinese-ws"
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForTokenClassification.from_pretrained(model_name)
-    nlp = pipeline("ner", model=model, tokenizer=tokenizer)
-    punctuated_text = nlp(text)
+    model = PunctuationModel()
+    punctuated_text = model.restore_punctuation(text)
     return punctuated_text
-
 
 # Comprobar dependencias
 check_ffmpeg()
@@ -39,25 +31,28 @@ check_ffmpeg()
 # Ruta objetivo al archivo mp3
 audio_file_path = 'test1.mp3'
 
-# Split the audio into segments of 1 minute each
+# Dividir el audio en segmentos de 1 minuto cada uno
 segments = split_audio(audio_file_path)
 
-# Initialize recognizer
+# Inicializar el reconocedor
 recognizer = sr.Recognizer()
 
-# Transcribe each segment and concatenate the results
+# Transcribir cada segmento y concatenar los resultados
 full_transcription = ""
 for wav_path in segments:
     with sr.AudioFile(wav_path) as source:
         audio_data = recognizer.record(source)
         transcription = recognizer.recognize_google(audio_data, language='es-ES')
-        full_transcription += transcription + " "
 
-# Add punctuation to the transcription
-# model = PunctuationModel()
-# punctuated_transcription = model.restore_punctuation(full_transcription)
+        # Agregar un marcador para pausas largas
+        pauses = transcription.split()
+        for i in range(len(pauses)):
+            if len(pauses[i]) > 0 and pauses[i][-1] in ['.', '!', '?']:
+                pauses[i] += '\n\n'  # Puntos y aparte para pausas largas
 
-# Add punctuation to the transcription
-#punctuated_transcription = add_punctuation(full_transcription)
+        full_transcription += " ".join(pauses) + " "
 
-print(full_transcription)
+# Agregar puntuación a la transcripción
+punctuated_transcription = add_punctuation(full_transcription)
+
+print(punctuated_transcription)
