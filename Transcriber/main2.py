@@ -4,6 +4,7 @@ import os
 import shutil
 #from transformers import AutoTokenizer, AutoModelForTokenClassification, pipeline
 from deepmultilingualpunctuation import PunctuationModel
+from docx import Document
 
 def check_ffmpeg():
     if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
@@ -25,11 +26,20 @@ def add_punctuation(text):
     punctuated_text = model.restore_punctuation(text)
     return punctuated_text
 
+def save_as_docx(text, output_path):
+    doc = Document()
+    paragraphs = text.split("\n\n")
+    for para in paragraphs:
+        doc.add_paragraph(para)
+    doc.save(output_path)
+
+
 # Comprobar dependencias
 check_ffmpeg()
 
 # Ruta objetivo al archivo mp3
-audio_file_path = 'test1.mp3'
+audio_file_path = 'test3.mp3'
+docx_file_path = os.path.splitext(audio_file_path)[0] + ".docx"
 
 # Dividir el audio en segmentos de 1 minuto cada uno
 segments = split_audio(audio_file_path)
@@ -37,22 +47,31 @@ segments = split_audio(audio_file_path)
 # Inicializar el reconocedor
 recognizer = sr.Recognizer()
 
-# Transcribir cada segmento y concatenar los resultados
+# Transcribe each segment and concatenate the results
 full_transcription = ""
 for wav_path in segments:
     with sr.AudioFile(wav_path) as source:
         audio_data = recognizer.record(source)
-        transcription = recognizer.recognize_google(audio_data, language='es-ES')
+        transcription = add_punctuation(recognizer.recognize_google(audio_data, language='es-ES'))
 
-        # Agregar un marcador para pausas largas
-        pauses = transcription.split()
-        for i in range(len(pauses)):
-            if len(pauses[i]) > 0 and pauses[i][-1] in ['.', '!', '?']:
-                pauses[i] += '\n\n'  # Puntos y aparte para pausas largas
+        # Add double newline after every 5 consecutive dots
+        dots_count = 0
+        transcribed_text = ""
+        for char in transcription:
+            transcribed_text += char
+            if char == '.':
+                dots_count += 1
+                if dots_count == 5:
+                    transcribed_text += '\n\n'
+                    dots_count = 0
 
-        full_transcription += " ".join(pauses) + " "
+        full_transcription += transcribed_text + " "
 
-# Agregar puntuación a la transcripción
-punctuated_transcription = add_punctuation(full_transcription)
+# Add punctuation to the transcription
+#punctuated_transcription = add_punctuation(full_transcription)
 
-print(punctuated_transcription)
+# Save the transcription as a DOCX document
+save_as_docx(full_transcription, docx_file_path)
+
+print(full_transcription)
+print("Transcription saved to:", docx_file_path)
