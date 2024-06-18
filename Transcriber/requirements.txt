@@ -1,0 +1,6 @@
+speechrecognition
+pydub
+deepmultilingualpunctuation
+python-docx
+transformers
+torch
