@@ -61,12 +61,11 @@ audio_files = [f for f in os.listdir(audio_dir) if f.endswith('.mp3')]
 
 # Ruta objetivo al archivo mp3
 for audio_file in audio_files:
-    audio_file_path = 'test3.mp3'
-    docx_file_path = os.path.splitext(audio_file_path)[0] + ".docx"
-    title = os.path.splitext(os.path.basename(audio_file_path))[0]
+    docx_file_path = os.path.splitext(audio_file)[0] + ".docx"
+    title = os.path.splitext(os.path.basename(audio_file))[0]
 
     # Dividir el audio en segmentos basados en pausas de al menos 1 segundo
-    segments = split_audio_by_silence(audio_file_path)
+    segments = split_audio_by_silence(audio_file)
 
     # Transcribe cada segmento y concatena los resultados
     full_transcription = ""
