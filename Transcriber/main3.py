@@ -4,6 +4,8 @@ import os
 import shutil
 from deepmultilingualpunctuation import PunctuationModel
 from docx import Document
+from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
 
 
 def check_ffmpeg():
@@ -31,8 +33,16 @@ def add_punctuation(text):
     return punctuated_text
 
 
-def save_as_docx(text, output_path):
+def save_as_docx(text, output_path, title):
     doc = Document()
+    # Add title
+    title_paragraph = doc.add_paragraph()
+    title_run = title_paragraph.add_run(title)
+    title_run.bold = True
+    title_run.font.size = Pt(14)
+    title_paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+
+    # Add transcribed text
     paragraphs = text.split("\n\n")
     for para in paragraphs:
         doc.add_paragraph(para)
@@ -43,8 +53,9 @@ def save_as_docx(text, output_path):
 check_ffmpeg()
 
 # Ruta objetivo al archivo mp3
-audio_file_path = 'testFinal.mp3'
+audio_file_path = 'test3.mp3'
 docx_file_path = os.path.splitext(audio_file_path)[0] + ".docx"
+title = os.path.splitext(os.path.basename(audio_file_path))[0]
 
 # Dividir el audio en segmentos basados en pausas de al menos 1 segundo
 segments = split_audio_by_silence(audio_file_path)
@@ -70,7 +81,7 @@ formatted_transcription2 = formatted_transcription.replace(" <PAUSE> ", " ")
 formatted_transcription3 = formatted_transcription2.replace(" <PAUSE>,", ",")
 
 # Guardar la transcripción como un documento DOCX
-save_as_docx(formatted_transcription3, docx_file_path)
+save_as_docx(formatted_transcription3, docx_file_path, title)
 
 print(formatted_transcription3)
 print("Transcription saved to:", docx_file_path)
